@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import personService from "./services/phonebook"
+import "./index.css"
 
 
 const Filter = ({filter: filter, setFilter: setFilter}) => {
@@ -16,7 +17,7 @@ const Filter = ({filter: filter, setFilter: setFilter}) => {
 }
 
 
-const PersonForm = ({ persons: persons, setPersons: setPersons }) => {
+const PersonForm = ({ persons: persons, setPersons: setPersons, setNotificationMessage: setNotificationMessage }) => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState("")
 
@@ -39,14 +40,21 @@ const PersonForm = ({ persons: persons, setPersons: setPersons }) => {
         setPersons(persons.concat(returnedPerson))
         setNewName("")
         setNewNumber("")
+        setNotificationMessage(`Added ${newPerson.name}`)
+        setTimeout(() => setNotificationMessage(""), 5000)
       })
 
     } else if (newPerson.name != "" && newPerson.number != "") {
       if (window.confirm(`${newPerson.name} is already added to phonebook, replace old number with new one?`)) {
         id = persons.filter((person) => newPerson.name === person.name)[0].id
         console.log(id)
-        personService.updatePerson(id, newPerson).then(
+        personService.updatePerson(id, newPerson).then( () => {
           setPersons(persons.filter((person) => newPerson.name !== person.name).concat({...newPerson, id:id}))
+          setNewName("")
+          setNewNumber("")
+          setNotificationMessage(`Updated ${newPerson.name}`)
+          setTimeout(() => setNotificationMessage(""), 5000)
+        }
         )
       }
     } else 
@@ -91,10 +99,22 @@ const Persons = ({ persons: persons, filter: filter, setPersons: setPersons}) =>
   )
 }
 
+const Notification = ({message: message}) => {
+  if (message === "") {
+    return null
+  }
+
+  return (
+    <div className='error'>
+      {message}
+    </div>
+  )
+}
 
 const App = () => {
   const [persons, setPersons] = useState([]) 
   const [filter, setFilter] = useState("")
+  const [notificationMessage, setNotificationMessage] = useState("")
 
   useEffect(() => {
     personService
@@ -108,11 +128,13 @@ const App = () => {
     <div>
       <h2>Phonebook</h2>
 
+      <Notification message={notificationMessage}/>
+
       <Filter filter={filter} setFilter={setFilter}/>
 
       <h3>Add a new</h3>
 
-      <PersonForm persons={persons} setPersons={setPersons}/>
+      <PersonForm persons={persons} setPersons={setPersons} setNotificationMessage={setNotificationMessage}/>
 
       <h3>Numbers</h3>
       <Persons persons={persons} filter={filter} setPersons={setPersons}/>

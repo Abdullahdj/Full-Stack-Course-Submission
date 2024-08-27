@@ -1,0 +1,14 @@
+.error {
+    color: green;
+    border-color: red;
+    border-radius: 2px;
+    border: 3px;
+    border-style: solid;
+    padding: 5px;
+    font-size: 15px;
+    background-color: lightgray;
+    align-items: center;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 15px;
+}
