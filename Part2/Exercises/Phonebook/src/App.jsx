@@ -17,7 +17,7 @@ const Filter = ({filter: filter, setFilter: setFilter}) => {
 }
 
 
-const PersonForm = ({ persons: persons, setPersons: setPersons, setNotificationMessage: setNotificationMessage }) => {
+const PersonForm = ({ persons: persons, setPersons: setPersons, setNotificationMessage: setNotificationMessage , setIsErrorMessage: setIsErrorMessage}) => {
   const [newName, setNewName] = useState('')
   const [newNumber, setNewNumber] = useState("")
 
@@ -40,6 +40,7 @@ const PersonForm = ({ persons: persons, setPersons: setPersons, setNotificationM
         setPersons(persons.concat(returnedPerson))
         setNewName("")
         setNewNumber("")
+        setIsErrorMessage(false)
         setNotificationMessage(`Added ${newPerson.name}`)
         setTimeout(() => setNotificationMessage(""), 5000)
       })
@@ -47,11 +48,11 @@ const PersonForm = ({ persons: persons, setPersons: setPersons, setNotificationM
     } else if (newPerson.name != "" && newPerson.number != "") {
       if (window.confirm(`${newPerson.name} is already added to phonebook, replace old number with new one?`)) {
         id = persons.filter((person) => newPerson.name === person.name)[0].id
-        console.log(id)
         personService.updatePerson(id, newPerson).then( () => {
           setPersons(persons.filter((person) => newPerson.name !== person.name).concat({...newPerson, id:id}))
           setNewName("")
           setNewNumber("")
+          setIsErrorMessage(false)
           setNotificationMessage(`Updated ${newPerson.name}`)
           setTimeout(() => setNotificationMessage(""), 5000)
         }
@@ -79,13 +80,23 @@ const PersonForm = ({ persons: persons, setPersons: setPersons, setNotificationM
 }
 
 
-const Persons = ({ persons: persons, filter: filter, setPersons: setPersons}) => {
+const Persons = ({ persons: persons, filter: filter, setPersons: setPersons, setNotificationMessage: setNotificationMessage , setIsErrorMessage: setIsErrorMessage}) => {
   let peopleToShow = persons.filter((person) => person.name.toLowerCase().includes(filter))
 
   const deletePerson = (person) => {
     if (window.confirm(`Do you really want to delete ${person.name} ?`)) {
-      personService.deletePerson(person.id)
-      setPersons(persons.filter((aPerson) => aPerson.id !== person.id))
+      personService.deletePerson(person.id).then(() => {
+        setPersons(persons.filter((aPerson) => aPerson.id !== person.id))
+        setIsErrorMessage(false)
+        setNotificationMessage(`Deleted ${person.name}`)
+        setTimeout(() => setNotificationMessage(""), 5000)
+      }).catch( () => {
+        setPersons(persons.filter((aPerson) => aPerson.id !== person.id))
+        setIsErrorMessage(true)
+        setNotificationMessage(`Information of ${person.name} has already been removed from server`)
+        setTimeout(() => setNotificationMessage(""), 5000)
+      }
+      )
     }
   }
 
@@ -99,13 +110,18 @@ const Persons = ({ persons: persons, filter: filter, setPersons: setPersons}) =>
   )
 }
 
-const Notification = ({message: message}) => {
+const Notification = ({message: message, isError: isError}) => {
   if (message === "") {
     return null
   }
 
+  let classname = "notification"
+  if (isError) {
+    classname = "error"
+  }
+
   return (
-    <div className='error'>
+    <div className={classname}>
       {message}
     </div>
   )
@@ -115,6 +131,7 @@ const App = () => {
   const [persons, setPersons] = useState([]) 
   const [filter, setFilter] = useState("")
   const [notificationMessage, setNotificationMessage] = useState("")
+  const [isErrorMessage, setIsErrorMessage] = useState(false)
 
   useEffect(() => {
     personService
@@ -128,16 +145,16 @@ const App = () => {
     <div>
       <h2>Phonebook</h2>
 
-      <Notification message={notificationMessage}/>
+      <Notification message={notificationMessage} isError={isErrorMessage}/>
 
       <Filter filter={filter} setFilter={setFilter}/>
 
       <h3>Add a new</h3>
 
-      <PersonForm persons={persons} setPersons={setPersons} setNotificationMessage={setNotificationMessage}/>
+      <PersonForm persons={persons} setPersons={setPersons} setNotificationMessage={setNotificationMessage} setIsErrorMessage={setIsErrorMessage}/>
 
       <h3>Numbers</h3>
-      <Persons persons={persons} filter={filter} setPersons={setPersons}/>
+      <Persons persons={persons} filter={filter} setPersons={setPersons} setNotificationMessage={setNotificationMessage} setIsErrorMessage={setIsErrorMessage}/>
     </div>
   )
 }
